@@ -238,11 +238,13 @@ Pipeline::Pipeline(const glm::ivec2& resolution) : lithium::RenderPipeline{resol
     blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     enableMultisampling();
 
-    //_screenShader = std::make_shared<lithium::ShaderProgram>("shaders/screen.vert", "shaders/screen.frag");
+    _screenShader = std::make_shared<lithium::ShaderProgram>("shaders/screen.vert", "shaders/screen.frag");
 
+    /*
     _screenShader = std::make_shared<lithium::ShaderProgram>(
         std::shared_ptr<lithium::VertexShader>(lithium::VertexShader::fromSource(vertSrc)),
         std::shared_ptr<lithium::FragmentShader>(lithium::FragmentShader::fromSource(fragSrc)));
+    */
 
     _screenMesh = std::shared_ptr<lithium::Mesh>(lithium::Plane2D());
 

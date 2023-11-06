@@ -33,6 +33,7 @@ uniform float u_shake;
 uniform Projectile u_projectiles[10];
 uniform Collectable u_collectables[10];
 uniform Enemy u_enemies[10];
+uniform sampler2D u_map;
 
 const vec3 bgColor = vec3(0.0, 0.5, 1.0);
 const vec3 fgColor = vec3(1.0, 1.0, 1.0);
@@ -48,7 +49,7 @@ float waveSuperposition(float x) {
 
     // Sum multiple sine waves
     for (int j = 0; j < 3; ++j) {
-        y += amplitudes[j] * sin(frequencies[j] * 16.0 * x * 2.0 * 3.1415926535897932384626433832795 + phases[j] * u_time * 16.0);
+        y += amplitudes[j] * sin(frequencies[j] * 12.0 * x * 2.0 * 3.1415926535897932384626433832795 + phases[j] * u_time * 16.0);
     }
 
     return y;
@@ -56,7 +57,7 @@ float waveSuperposition(float x) {
 
 void main()
 {
-    vec2 st = gl_FragCoord.xy / u_resolution.xy;
+    vec2 st = texCoord.xy;
     st.x *= u_resolution.x / u_resolution.y;
 
     st.x -= 0.5;
@@ -84,7 +85,9 @@ void main()
 
     st.y += sin(st.x * 64.0 * cos(27.0 * st.x) * u_shake) * 0.01 * u_shake;
 
-    if(st.x > 5.0)
+    st.y -= texture(u_map, vec2(st.x / 4.0)).r - 0.5;
+
+    /*if(st.x > 5.0)
     {
         //st.y += mix(0.0, sin(st.x * 64.0) * 0.01, max(6.0 - st.x, 0.0));
         st.y += mix(0.0, waveSuperposition(st.x), max(6.0 - st.x, 0.0));
@@ -113,7 +116,7 @@ void main()
     else if(st.x > 0.4)
     {
         st.y += (st.x - 0.4);   
-    }
+    }*/
 
     float projectileRadius = 0.05;
     for(int i=0; i < 10; ++i)
@@ -195,13 +198,12 @@ void main()
         - smoothstep(0.5, 0.501, length(st.y - lineRadius));
 
 
-    uv.y += sin(uv.x) * 0.3;
+    /*uv.y += sin(uv.x) * 0.3;
     x += smoothstep(1.0, 1.001, length(uv.y + lineRadius))
-        - smoothstep(1.0, 1.001, length(uv.y - lineRadius));
-        
+        - smoothstep(1.0, 1.001, length(uv.y - lineRadius));*/
+
     fragColor = vec4(mix(bgColor, fgColor, x), 1.0);
     fragColor.rgb = mix(fragColor.rgb, 1.0 - fragColor.rgb, u_shake);
-
 
     /*float hitBox = (step(-0.43, uv.x) - step(-0.16, uv.x)) * mod(uv.x * 64.0, 2);
 

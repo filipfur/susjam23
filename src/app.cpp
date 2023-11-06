@@ -8,9 +8,27 @@ App::App() : Application{"lithium-lab", glm::ivec2{1440, 800}, lithium::Applicat
     // Create the render pipeline
     _pipeline = std::make_shared<Pipeline>(defaultFrameBufferResolution());
 
+    _map = std::shared_ptr<lithium::ImageTexture>(lithium::ImageTexture::load(
+        "assets/level.png", GL_RGB, GL_RGB, 1, true, false
+    ));
+
+    unsigned char* buf = _map->bytes();
+    for(auto i = 0; i < _map->width(); ++i)
+    {
+        glm::ivec4 s = glm::vec4(
+            static_cast<int>(buf[i * 4 + 0]),
+            static_cast<int>(buf[i * 4 + 1]),
+            static_cast<int>(buf[i * 4 + 2]),
+            static_cast<int>(buf[i * 4 + 3])
+        );
+        //buf[i * 4 + 1] = 0xFF;
+    }
+
+    std::cout << std::endl;
+
     // Create and add a background plane to the render pipeline, and stage it for rendering.
     _background = std::make_shared<lithium::Object>(std::shared_ptr<lithium::Mesh>(lithium::Plane2D()),
-        std::vector<lithium::Object::TexturePointer>{});
+        std::vector<lithium::Object::TexturePointer>{_map});
     _background->setGroupId(Pipeline::BACKGROUND);
     _pipeline->attach(_background.get());
     _background->stage();
@@ -54,6 +72,22 @@ App::App() : Application{"lithium-lab", glm::ivec2{1440, 800}, lithium::Applicat
 
     input()->addPressedCallback(GLFW_KEY_K, [this](int key, int mods) {
         _shakeTimer = 0.2f;
+        return true;
+    });
+
+    input()->addPressedCallback(GLFW_KEY_UP, [this](int key, int mods) {
+        return manipMap(mods, 1);
+    });
+
+    input()->addPressedCallback(GLFW_KEY_DOWN, [this](int key, int mods) {
+        return manipMap(mods, -1);
+    });
+
+    input()->addPressedCallback(GLFW_KEY_S, [this](int key, int mods) {
+        if(mods & GLFW_MOD_CONTROL)
+        {
+            _map->save();
+        }
         return true;
     });
 
