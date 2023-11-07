@@ -79,13 +79,17 @@ void main()
     st.x += int(u_playerPos.x + 0.5);
     uv.x += int(u_playerPos.x + 0.5);
 
+    vec4 sample = texture(u_map, vec2(st.x / 4.0));
+
     //bool facingLeft = delta < 0.0;
     /*st.y += mix(sin(st.x) * 0.1, sin(st.x * 16.0) * 0.02, smoothstep(0.5, 1.0, st.x))
         + mix(0.0, st.x * st.x * 0.05, max(4.0 - st.x, 0.0));*/
 
     st.y += sin(st.x * 64.0 * cos(27.0 * st.x) * u_shake) * 0.01 * u_shake;
 
-    st.y -= texture(u_map, vec2(st.x / 4.0)).r - 0.5;
+    st.y -= sample.r - 0.5;
+
+    st.y += waveSuperposition(st.x) * sample.b;
 
     /*if(st.x > 5.0)
     {

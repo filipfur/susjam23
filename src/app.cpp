@@ -76,15 +76,23 @@ App::App() : Application{"lithium-lab", glm::ivec2{1440, 800}, lithium::Applicat
     });
 
     input()->addPressedCallback(GLFW_KEY_UP, [this](int key, int mods) {
-        return manipMap(mods, 1);
+        return manipMap(mods, 1, 0);
     });
 
     input()->addPressedCallback(GLFW_KEY_DOWN, [this](int key, int mods) {
-        return manipMap(mods, -1);
+        return manipMap(mods, -1, 0);
+    });
+
+    input()->addPressedCallback(GLFW_KEY_LEFT, [this](int key, int mods) {
+        return manipMap(mods, -8, 2);
+    });
+
+    input()->addPressedCallback(GLFW_KEY_RIGHT, [this](int key, int mods) {
+        return manipMap(mods, 8, 2);
     });
 
     input()->addPressedCallback(GLFW_KEY_S, [this](int key, int mods) {
-        if(mods & GLFW_MOD_CONTROL)
+        if(mods & GLFW_MOD_ALT)
         {
             _map->save();
         }
@@ -413,4 +421,50 @@ void App::update(float dt)
 void App::onWindowSizeChanged(int width, int height)
 {
     _pipeline->setResolution(glm::ivec2{width, height});
+}
+
+bool App::manipMap(int mods, int amount, int bit)
+{
+    bool copy{false};
+    if(mods & GLFW_MOD_CONTROL)
+    {
+        copy = true;
+    }
+    if(mods & GLFW_MOD_SHIFT)
+    {
+        amount *= 4;
+    }
+    if(mods & GLFW_MOD_ALT)
+    {
+        unsigned char* buf = _map->bytes();
+        size_t index = static_cast<int>((0.5f + _playerPos.x) / 4.0f * _map->width());
+        if(index < 0 || index >= _map->width())
+        {
+            return false;
+        }
+        std::cout << "index: " << index << std::endl;
+        if(copy)
+        {
+            size_t otherIndex = index + (amount < 0 ? -1 : 1);
+            if(otherIndex < 0 || otherIndex >= _map->width())
+            {
+                return false;
+            }
+            buf[index * 4 + bit] = buf[otherIndex * 4 + bit];
+        }
+        else
+        {
+            if(amount < 0)
+            {
+                amount = std::max(amount, -static_cast<int>(buf[index * 4 + bit]));
+            }
+            else
+            {
+                amount = std::min(amount, 255 - static_cast<int>(buf[index * 4 + bit]));
+            }
+            buf[index * 4 + bit] = buf[index * 4 + bit] + amount;
+        }
+        _map->reloadBytes();
+    }
+    return true;
 }

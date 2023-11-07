@@ -21,26 +21,7 @@ protected:
         //printf("FPS: %d\n", fps);
     }
 
-    bool manipMap(int mods, int amount)
-    {
-        if(mods & GLFW_MOD_CONTROL)
-        {
-            amount *= 8;
-        }
-        if(mods & GLFW_MOD_SHIFT)
-        {
-            unsigned char* buf = _map->bytes();
-            size_t index = static_cast<int>((0.5f + _playerPos.x) / 4.0f * _map->width());
-            if(index < 0)
-            {
-                return false;
-            }
-            std::cout << "index: " << index << std::endl;
-            buf[index * 4] = buf[index * 4] + amount;
-            _map->reloadBytes();
-        }
-        return true;
-    }
+    bool manipMap(int mods, int amount, int bit);
 
 private:
     std::shared_ptr<Pipeline> _pipeline{nullptr};
