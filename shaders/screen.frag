@@ -26,6 +26,7 @@ struct Enemy
     float deathTimer;
 };
 
+uniform vec2 u_camera;
 uniform vec2 u_resolution;
 uniform float u_time;
 uniform vec3 u_playerPos;
@@ -62,7 +63,7 @@ void main()
 
     st.x -= 0.5;
 
-    vec2 uv = st;
+    //vec2 uv = st;
 
     bool facingLeft = u_playerPos.z < 0;
 
@@ -72,14 +73,15 @@ void main()
 
     //posX += cos(u_time) * 0.2;'
 
-    float delta = sin(u_time) * 0.5;
-    delta = -u_playerPos.x;
+    float delta = -u_playerPos.x;
     //delta = 0.0;
 
-    st.x += int(u_playerPos.x + 0.5);
-    uv.x += int(u_playerPos.x + 0.5);
+    //st.x += sin(u_time);
+    //st.x += int(u_playerPos.x + 0.5);
+    //uv.x += int(u_playerPos.x + 0.5);
+    st.x += u_camera.x;
 
-    vec4 sample = texture(u_map, vec2(st.x / 4.0));
+    vec4 sample = texture(u_map, vec2(st.x / 4.0, 0.0));
 
     //bool facingLeft = delta < 0.0;
     /*st.y += mix(sin(st.x) * 0.1, sin(st.x * 16.0) * 0.02, smoothstep(0.5, 1.0, st.x))

@@ -14,11 +14,9 @@ void main()
 }
 )";
 
-    const char* fragSrc = R"(
-#version 330 core
+    const char* fragSrc = R"(#version 330 core
 
 out vec4 fragColor;
-
 in vec2 texCoord;
 
 struct Projectile
@@ -43,6 +41,7 @@ struct Enemy
     float deathTimer;
 };
 
+uniform vec2 u_camera;
 uniform vec2 u_resolution;
 uniform float u_time;
 uniform vec3 u_playerPos;
@@ -50,6 +49,7 @@ uniform float u_shake;
 uniform Projectile u_projectiles[10];
 uniform Collectable u_collectables[10];
 uniform Enemy u_enemies[10];
+uniform sampler2D u_map;
 
 const vec3 bgColor = vec3(0.0, 0.5, 1.0);
 const vec3 fgColor = vec3(1.0, 1.0, 1.0);
@@ -65,7 +65,7 @@ float waveSuperposition(float x) {
 
     // Sum multiple sine waves
     for (int j = 0; j < 3; ++j) {
-        y += amplitudes[j] * sin(frequencies[j] * 16.0 * x * 2.0 * 3.1415926535897932384626433832795 + phases[j] * u_time * 16.0);
+        y += amplitudes[j] * sin(frequencies[j] * 12.0 * x * 2.0 * 3.1415926535897932384626433832795 + phases[j] * u_time * 16.0);
     }
 
     return y;
@@ -73,64 +73,26 @@ float waveSuperposition(float x) {
 
 void main()
 {
-    vec2 st = gl_FragCoord.xy / u_resolution.xy;
+    vec2 st = texCoord.xy;
     st.x *= u_resolution.x / u_resolution.y;
 
     st.x -= 0.5;
 
-    vec2 uv = st;
-
     bool facingLeft = u_playerPos.z < 0;
-
-    //st.x += sin(u_time) * 0.2;
 
     float posX = 0.5;
 
-    //posX += cos(u_time) * 0.2;'
+    float delta = -u_playerPos.x;
 
-    float delta = sin(u_time) * 0.5;
-    delta = -u_playerPos.x;
-    //delta = 0.0;
+    st.x += u_camera.x;
 
-    st.x += int(u_playerPos.x + 0.5);
-    uv.x += int(u_playerPos.x + 0.5);
-
-    //bool facingLeft = delta < 0.0;
-    /*st.y += mix(sin(st.x) * 0.1, sin(st.x * 16.0) * 0.02, smoothstep(0.5, 1.0, st.x))
-        + mix(0.0, st.x * st.x * 0.05, max(4.0 - st.x, 0.0));*/
+    vec4 sample = texture(u_map, vec2(st.x / 4.0, 0.0));
 
     st.y += sin(st.x * 64.0 * cos(27.0 * st.x) * u_shake) * 0.01 * u_shake;
 
-    if(st.x > 5.0)
-    {
-        //st.y += mix(0.0, sin(st.x * 64.0) * 0.01, max(6.0 - st.x, 0.0));
-        st.y += mix(0.0, waveSuperposition(st.x), max(6.0 - st.x, 0.0));
-    }
-    else if(st.x > 3.5)
-    {
-        //st.y += mix(0.0, sin(st.x * 64.0) * 0.01, min(st.x - 3.5, 1.0));
-        st.y += waveSuperposition(st.x);
-    }
-    else if(st.x > 3.4)
-    {
-        st.y += -0.2 + (st.x - 3.4) * 2.0;
-    }
-    else if(st.x > 3.0)
-    {
-        st.y -= 0.2;
-    }
-    else if(st.x > 2.6)
-    {
-        st.y -= -0.2 + (st.x - 2.6);
-    }
-    else if(st.x > 0.6)
-    {
-        st.y += 0.2;
-    }
-    else if(st.x > 0.4)
-    {
-        st.y += (st.x - 0.4);   
-    }
+    st.y -= sample.r - 0.5;
+
+    st.y += waveSuperposition(st.x) * sample.b;
 
     float projectileRadius = 0.05;
     for(int i=0; i < 10; ++i)
@@ -211,20 +173,8 @@ void main()
     float x = smoothstep(0.5, 0.501, length(st.y + lineRadius))
         - smoothstep(0.5, 0.501, length(st.y - lineRadius));
 
-
-    uv.y += sin(uv.x) * 0.3;
-    x += smoothstep(1.0, 1.001, length(uv.y + lineRadius))
-        - smoothstep(1.0, 1.001, length(uv.y - lineRadius));
-        
     fragColor = vec4(mix(bgColor, fgColor, x), 1.0);
     fragColor.rgb = mix(fragColor.rgb, 1.0 - fragColor.rgb, u_shake);
-
-
-    /*float hitBox = (step(-0.43, uv.x) - step(-0.16, uv.x)) * mod(uv.x * 64.0, 2);
-
-    fragColor.rgb = mix(fragColor.rgb, vec3(1,0,0),
-        (smoothstep(0.96, 0.961, length(uv.y + lineRadius))
-        - smoothstep(0.96, 0.961, length(uv.y - lineRadius))) * hitBox);*/
 }
 )";
 
@@ -238,13 +188,11 @@ Pipeline::Pipeline(const glm::ivec2& resolution) : lithium::RenderPipeline{resol
     blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     enableMultisampling();
 
-    _screenShader = std::make_shared<lithium::ShaderProgram>("shaders/screen.vert", "shaders/screen.frag");
+    //_screenShader = std::make_shared<lithium::ShaderProgram>("shaders/screen.vert", "shaders/screen.frag");
 
-    /*
     _screenShader = std::make_shared<lithium::ShaderProgram>(
         std::shared_ptr<lithium::VertexShader>(lithium::VertexShader::fromSource(vertSrc)),
         std::shared_ptr<lithium::FragmentShader>(lithium::FragmentShader::fromSource(fragSrc)));
-    */
 
     _screenMesh = std::shared_ptr<lithium::Mesh>(lithium::Plane2D());
 

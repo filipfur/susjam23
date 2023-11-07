@@ -34,7 +34,9 @@ private:
     std::shared_ptr<lithium::Input::KeyCache> _keyCache;
 
     glm::vec3 _playerPos{-0.5f, 0.0f, 0.0f};
-    glm::vec2 _playerVel;
+    glm::vec2 _playerVel{0.0f, 0.0f};
+
+    glm::vec2 _camera2d{0.0f, 0.0f};
 
     bool _playerCrawling{false};
     
@@ -76,6 +78,7 @@ private:
     Projectile _playerProjectiles[10];
     Collectable _collectables[10];
     Enemy _enemies[10];
+    bool _godMode{false};
 
     float _shakeTimer{0.0f};
     float _shake{0.0f};

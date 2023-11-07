@@ -9,11 +9,11 @@ App::App() : Application{"lithium-lab", glm::ivec2{1440, 800}, lithium::Applicat
     _pipeline = std::make_shared<Pipeline>(defaultFrameBufferResolution());
 
     _map = std::shared_ptr<lithium::ImageTexture>(lithium::ImageTexture::load(
-        "assets/level.png", GL_RGB, GL_RGB, 1, true, false
+        "level.png", GL_RGB, GL_RGB, 1, true, false
     ));
 
-    unsigned char* buf = _map->bytes();
-    for(auto i = 0; i < _map->width(); ++i)
+    //unsigned char* buf = _map->bytes();
+    /*for(auto i = 0; i < _map->width(); ++i)
     {
         glm::ivec4 s = glm::vec4(
             static_cast<int>(buf[i * 4 + 0]),
@@ -22,7 +22,7 @@ App::App() : Application{"lithium-lab", glm::ivec2{1440, 800}, lithium::Applicat
             static_cast<int>(buf[i * 4 + 3])
         );
         //buf[i * 4 + 1] = 0xFF;
-    }
+    }*/
 
     std::cout << std::endl;
 
@@ -63,7 +63,7 @@ App::App() : Application{"lithium-lab", glm::ivec2{1440, 800}, lithium::Applicat
                 p.used = true;
                 p.inactive = false;
                 p.position = _playerPos;
-                p.velocity = glm::vec2(_playerPos.z * 1.0f, 0.0f);
+                p.velocity = glm::vec2(_playerPos.z * 1.6f, 0.0f);
                 break;
             }
         }
@@ -129,6 +129,7 @@ App::App() : Application{"lithium-lab", glm::ivec2{1440, 800}, lithium::Applicat
     }
 
     _background->setShaderCallback([this](lithium::Renderable* r, lithium::ShaderProgram* sp) {
+        sp->setUniform("u_camera", _camera2d);
         sp->setUniform("u_playerPos", _playerPos);
 
         for(int index=0; index < 10; ++index)
@@ -171,6 +172,7 @@ App::App() : Application{"lithium-lab", glm::ivec2{1440, 800}, lithium::Applicat
             sp->setUniform(label + ".chasingPlayer", e.chasingPlayer);
             sp->setUniform(label + ".deathTimer", e.deathTimer);
         }
+
         sp->setUniform("u_shake", _shake);
     });
 
@@ -210,6 +212,30 @@ void App::update(float dt)
     {
         _cameraYaw -= glm::pi<float>() * 0.5f * dt;
 
+    }
+
+    unsigned char* buf = _map->bytes();
+    size_t index = std::min(std::max(0, static_cast<int>((0.5f + _playerPos.x) / 4.0f * _map->width())), _map->width() - 1);
+
+    float height = static_cast<float>(buf[index * 4 + 0]) / 255.0f;
+    bool inWater = buf[index * 4 + 2] == 0xFF;
+
+    if(inWater && !_godMode)
+    {
+        _playerPos.x -= glm::sign(_playerVel.x) * 0.7f;
+        _shakeTimer = 0.2f;
+    }
+
+    static glm::vec2 cameraTarget{0.0f, 0.0f};
+    cameraTarget.x = int(_playerPos.x + 0.5);
+    glm::vec2 dc = cameraTarget - _camera2d;
+    if(dc.x * dc.x + dc.y * dc.y < 0.000001f)
+    {
+        _camera2d = cameraTarget;
+    }
+    else
+    {
+        _camera2d = glm::mix(_camera2d, cameraTarget, 2.0f * dt);
     }
 
     for(auto& p : _playerProjectiles)
@@ -255,7 +281,7 @@ void App::update(float dt)
                     c.used = false;
                 }
             }
-            else
+            else if(!_godMode)
             {
                 float dx = c.position.x - _playerPos.x;
                 float dy = c.position.y - _playerPos.y + 0.1f;
@@ -273,13 +299,13 @@ void App::update(float dt)
         if(e.used)
         {
             glm::vec2 delta = glm::vec2(_playerPos.x, _playerPos.y) - e.position;
-            if(delta.x * delta.x + delta.y * delta.y < 0.005f)
+            if(!_godMode && delta.x * delta.x + delta.y * delta.y < 0.005f)
             {
                 _shakeTimer = 0.3f;
                 e.used = false;
                 continue;
             }
-            float dx;
+            float dx{};
             if(e.health <= 0)
             {
                 if(e.deathTimer == 0.0f)
@@ -307,20 +333,20 @@ void App::update(float dt)
             float pdx = _playerPos.x - e.position.x;
             if(e.facingLeft && pdx > -0.5f && pdx < 0)
             {
-                e.chasingPlayer = true;
+                e.chasingPlayer = !_godMode;
             }
         }
     }
 
     if(_keyCache->isPressed(GLFW_KEY_A) && _playerVel.x <= 0.0f)
     {
-        _playerVel.x -= 2.4f * dt;
+        _playerVel.x -= 1.8f * dt;
         _playerVel.x = std::max(_playerVel.x, -1.0f);
         _playerPos.z = -1.0f;
     }
     else if(_keyCache->isPressed(GLFW_KEY_D) && _playerVel.x >= 0.0f)
     {
-        _playerVel.x += 2.4f * dt;
+        _playerVel.x += 1.8f * dt;
         _playerVel.x = std::min(_playerVel.x, 1.0f);
         _playerPos.z = 1.0f;
     }
@@ -397,7 +423,7 @@ void App::update(float dt)
     if(_shakeTimer > 0)
     {
         _shakeTimer -= dt;
-        _shake = rand() % 1000000 * 0.000001f;
+        _shake = (rand() % 1000000) * 0.00001f;
         if(_shakeTimer <= 0)
         {
             _shake = 0.0f;
@@ -442,7 +468,6 @@ bool App::manipMap(int mods, int amount, int bit)
         {
             return false;
         }
-        std::cout << "index: " << index << std::endl;
         if(copy)
         {
             size_t otherIndex = index + (amount < 0 ? -1 : 1);
